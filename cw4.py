@@ -1,96 +1,117 @@
 import numpy as np
+import matplotlib
+matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt, freqz
-from scipy.fft import fft, fftfreq
-import matplotlib
 
-matplotlib.use("TkAgg")
-
-# Funkcja do wczytywania sygnału EKG
-def load_ekg(file_path):
+def load_ekg_noise(file_path):
     data = np.loadtxt(file_path)
-    time = data[:, 0]  # Pierwsza kolumna to czas
-    signal = data[:, 1]  # Druga kolumna to sygnał EKG
-    fs = 1 / (time[1] - time[0])  # Obliczenie częstotliwości próbkowania
-    return time, signal, fs
+    time = data[:, 0]
+    signal = data[:, 1]
+    # Jeśli plik ekg_noise.txt jest próbkowany z fs=360,
+    # to możemy to wyznaczyć z różnic w kolumnie czasu lub założyć z góry.
+    # Tutaj odczytamy z "time".
+    # fs ≈ 1 / (time[1] - time[0]) (zakładamy stały krok)
+    fs_approx = 1.0 / (time[1] - time[0])
+    return time, signal, fs_approx
 
-# Funkcja do projektowania filtru Butterwortha
-def design_filter(cutoff, fs, btype, order=5):
-    nyquist = 0.5 * fs
-    normal_cutoff = cutoff / nyquist
-    b, a = butter(order, normal_cutoff, btype=btype, analog=False)
-    return b, a
-
-# Funkcja do filtracji sygnału
-def apply_filter(signal, b, a):
-    return filtfilt(b, a, signal)
-
-# Funkcja do wykreślania charakterystyki częstotliwościowej filtra
-def plot_filter_response(b, a, fs, title):
-    w, h = freqz(b, a, worN=8000)
-    freq = 0.5 * fs * w / np.pi
-    plt.figure(figsize=(10, 4))
-    plt.plot(freq, 20 * np.log10(abs(h)), label="Charakterystyka amplitudowa")
-    plt.xlabel("Częstotliwość [Hz]")
-    plt.ylabel("Tłumienie [dB]")
+def plot_time(time, signal, title, start=0, end=2):
+    # Rysujemy w dziedzinie czasu wycinek [start, end] sekund
+    mask = (time >= start) & (time <= end)
+    plt.figure(figsize=(10,4))
+    plt.plot(time[mask], signal[mask], label="sygnał")
     plt.title(title)
-    plt.grid()
-    plt.axvline(x=60, color='r', linestyle='--', label="60 Hz")  # Linia dla 60 Hz
+    plt.xlabel("Czas [s]")
+    plt.ylabel("Amplituda")
+    plt.grid(True)
     plt.legend()
     plt.show()
 
-# Funkcja do wykreślania sygnału i jego widma
-def plot_signal_and_spectrum(time, signal, fs, title):
-    # Wykres sygnału
-    plt.figure(figsize=(12, 6))
-    plt.subplot(2, 1, 1)
-    plt.plot(time, signal, label="Sygnał")
-    plt.xlabel("Czas [s]")
-    plt.ylabel("Amplituda")
-    plt.title(f"{title} - Sygnał w dziedzinie czasu")
-    plt.grid()
-    plt.legend()
+def plot_fft(signal, fs, title="Widmo sygnału"):
+    N = len(signal)
+    spectrum = np.fft.fft(signal)
+    freqs = np.fft.fftfreq(N, d=1/fs)
+    half = N//2
+    freqs_plot = freqs[:half]
+    amplitude_spectrum = np.abs(spectrum) * 2.0 / N
+    amplitude_plot = amplitude_spectrum[:half]
 
-    # Widmo sygnału
-    n = len(signal)
-    spectrum = np.abs(fft(signal))[:n // 2]
-    frequencies = fftfreq(n, 1 / fs)[:n // 2]
-    plt.subplot(2, 1, 2)
-    plt.plot(frequencies, spectrum, label="Widmo")
+    plt.figure(figsize=(10,4))
+    plt.plot(freqs_plot, amplitude_plot)
+    plt.title(title)
     plt.xlabel("Częstotliwość [Hz]")
     plt.ylabel("Amplituda")
-    plt.title(f"{title} - Widmo sygnału")
-    plt.grid()
-    plt.legend()
-    plt.tight_layout()
-    plt.show(block = True)
+    plt.xlim([0, fs/2])
+    plt.grid(True)
+    plt.show()
 
-# Główna funkcja
+def design_butter_lowpass(fc, fs, order=4):
+    # Butterworth low-pass filter: fc=częstotliwość graniczna
+    # Wn jest znormalizowane => Wn = fc / (fs/2)
+    Wn = fc / (fs/2)
+    b, a = butter(order, Wn, btype='low', analog=False)
+    return b, a
+
+def design_butter_highpass(fc, fs, order=4):
+    Wn = fc / (fs/2)
+    b, a = butter(order, Wn, btype='high', analog=False)
+    return b, a
+
+def plot_filter_response(b, a, fs, title="Charakterystyka filtra"):
+    w, h = freqz(b, a, worN=1024)
+    freqs = w * fs/(2*np.pi)
+    gain = 20 * np.log10(np.abs(h))
+    plt.figure(figsize=(10,4))
+    plt.plot(freqs, gain)
+    plt.title(title)
+    plt.xlabel("Częstotliwość [Hz]")
+    plt.ylabel("Wzmocnienie [dB]")
+    plt.grid(True)
+    plt.show()
+
 def main():
-    # 1. Wczytanie sygnału
-    file_path = "ekg_noise.txt"
-    time, signal, fs = load_ekg(file_path)
-    plot_signal_and_spectrum(time, signal, fs, "Oryginalny sygnał EKG z zakłóceniami")
+    file_path = r"C:\Users\g_sie\OneDrive\Pulpit\CPSiO\ekg_noise.txt"
+    time, noisy_signal, fs = load_ekg_noise(file_path)
+    print(f"Szacowana fs = {fs:.2f} Hz")
 
-    # 2. Filtracja dolnoprzepustowa (60 Hz)
-    b_low, a_low = design_filter(60, fs, btype="low")
-    plot_filter_response(b_low, a_low, fs, "Charakterystyka filtru dolnoprzepustowego (60 Hz)")
-    filtered_low = apply_filter(signal, b_low, a_low)
-    plot_signal_and_spectrum(time, filtered_low, fs, "Sygnał po filtracji dolnoprzepustowej")
+    # 1) Sygnał z zakłóceniami
+    print("1) Obejrzenie surowego sygnału (ekg_noise).")
+    # Rysujemy np. fragment 2 sekund
+    plot_time(time, noisy_signal, "Surowy sygnał EKG (z zakłóceniami)", start=0, end=2)
+    # Rysujemy widmo surowego sygnału (charakterystyka amplitudowa)
+    plot_fft(noisy_signal, fs, title="Widmo amplitudowe sygnału surowego")
 
-    # Różnica między sygnałem oryginalnym a po filtracji dolnoprzepustowej
-    difference_low = signal - filtered_low
-    plot_signal_and_spectrum(time, difference_low, fs, "Różnica po filtracji dolnoprzepustowej")
+    # 2) Filtr dolnoprzepustowy fc=60 Hz
+    print("2) Filtr dolnoprzepustowy Butterworth, fc=60 Hz.")
+    b_lp, a_lp = design_butter_lowpass(fc=60, fs=fs, order=4)
+    print("   - Charakterystyka filtra (lowpass 60 Hz)")
+    plot_filter_response(b_lp, a_lp, fs, title="Charakterystyka filtra dolnoprzepustowego (60 Hz)")
+    # Filtracja
+    lp_signal = filtfilt(b_lp, a_lp, noisy_signal)
+    # Rysunek czasowy + widmo
+    plot_time(time, lp_signal, "Sygnał po filtrze dolnoprzepustowym (60 Hz)", start=0, end=2)
+    plot_fft(lp_signal, fs, "Widmo po filtrze dolnoprzepustowym (60 Hz)")
+    # Różnica sygnałów
+    diff_lp = noisy_signal - lp_signal
+    plot_time(time, diff_lp, "Różnica (oryginał - LP) w dziedzinie czasu", start=0, end=2)
+    plot_fft(diff_lp, fs, "Widmo różnicy (oryginał - LP)")
 
-    # 3. Filtracja górnoprzepustowa (5 Hz)
-    b_high, a_high = design_filter(5, fs, btype="high")
-    plot_filter_response(b_high, a_high, fs, "Charakterystyka filtru górnoprzepustowego (5 Hz)")
-    filtered_high = apply_filter(filtered_low, b_high, a_high)
-    plot_signal_and_spectrum(time, filtered_high, fs, "Sygnał po filtracji górnoprzepustowej")
+    # 3) Filtr górnoprzepustowy fc=5 Hz (na sygnale już przefiltrowanym w punkcie 2)
+    print("3) Filtr górnoprzepustowy Butterworth, fc=5 Hz, na sygnale z (2).")
+    b_hp, a_hp = design_butter_highpass(fc=5, fs=fs, order=4)
+    print("   - Charakterystyka filtra (highpass 5 Hz)")
+    plot_filter_response(b_hp, a_hp, fs, title="Charakterystyka filtra górnoprzepustowego (5 Hz)")
+    # Filtracja
+    bp_signal = filtfilt(b_hp, a_hp, lp_signal)
+    # Wykresy
+    plot_time(time, bp_signal, "Sygnał po filtrze górnoprzepustowym (5 Hz)", start=0, end=2)
+    plot_fft(bp_signal, fs, "Widmo po filtrze (5 Hz) - finalne")
+    # Różnica po HP
+    diff_hp = lp_signal - bp_signal
+    plot_time(time, diff_hp, "Różnica (LP - BP) w dziedzinie czasu", start=0, end=2)
+    plot_fft(diff_hp, fs, "Widmo różnicy (LP - BP)")
 
-    # Różnica między sygnałem po filtracji dolnoprzepustowej a po filtracji górnoprzepustowej
-    difference_high = filtered_low - filtered_high
-    plot_signal_and_spectrum(time, difference_high, fs, "Różnica po filtracji górnoprzepustowej")
+    print("Gotowe! :P ")
 
 if __name__ == "__main__":
     main()

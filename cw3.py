@@ -1,88 +1,88 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib
-
 matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
 
-def load_ekg(file_path):
-    """Wczytuje sygnał EKG, obsługując różne formaty plików."""
+def load_ekg_ecg100(file_path):
     data = np.loadtxt(file_path)
+    fs = 360  # częstotliwość próbkowania dla ecg100
+    # Plik ecg100.txt ma 1 kolumnę z samymi wartościami sygnału
+    signal = data
+    N = len(signal)
+    t = np.arange(N) / fs
+    return t, signal, fs
 
-    if len(data.shape) == 1:  # Jeśli mamy tylko jedną kolumnę
-        data = data.reshape(-1, 1)
-
-    if data.shape[1] == 2:  # Pliki z czasem (ekg_noise.txt)
-        time = data[:, 0]
-        signal = data[:, 1]
-    else:  # Pliki z jedną kolumną (np. ekg100.txt)
-        fs = 360 if '100' in file_path else 1000  # Dopasowanie fs
-        time = np.arange(len(data)) / fs
-        signal = data[:, 0]
-
-    return time, signal, fs
-
-def plot_ekg(time, signal, start_time=0, end_time=5):
-    """Wyświetla fragment sygnału EKG."""
-    mask = (time >= start_time) & (time <= end_time)
+def plot_ecg_time(t, signal, title="Sygnał EKG (ecg100) - dziedzina czasu", start_time=0, end_time=2):
+    mask = (t >= start_time) & (t <= end_time)
     plt.figure(figsize=(10, 4))
-    plt.plot(time[mask], signal[mask], label="EKG")
+    plt.plot(t[mask], signal[mask])
+    plt.title(title)
     plt.xlabel("Czas [s]")
     plt.ylabel("Amplituda")
-    plt.title("Wizualizacja sygnału EKG")
-    plt.legend()
-    plt.grid()
-    plt.show(block=True)  # Wymuszenie blokowania w PyCharm
+    plt.grid(True)
+    plt.show()
 
-def plot_spectrum(frequencies, spectrum, fs):
-    """Wyświetla widmo amplitudowe sygnału."""
+def compute_and_plot_fft_ecg(signal, fs, title="Widmo amplitudowe EKG"):
+    N = len(signal)
+    spectrum = np.fft.fft(signal)
+    freqs = np.fft.fftfreq(N, d=1/fs)
+
+    half = N // 2
+    freqs_plot = freqs[:half]
+    amplitude_spectrum = np.abs(spectrum) * 2.0 / N
+    amplitude_plot = amplitude_spectrum[:half]
+
     plt.figure(figsize=(10, 4))
-    plt.plot(frequencies, np.abs(spectrum[:len(frequencies)]))
+    plt.plot(freqs_plot, amplitude_plot)
+    plt.title(title)
     plt.xlabel("Częstotliwość [Hz]")
     plt.ylabel("Amplituda")
-    plt.title("Widmo amplitudowe sygnału EKG")
-    plt.grid()
-    plt.show(block=True)
+    plt.xlim([0, fs/2])  # zakres [0, fs/2]
+    plt.grid(True)
+    plt.show()
 
-def compare_signals(original_signal, reconstructed_signal):
-    """Porównuje oryginalny sygnał z odtworzonym."""
-    plt.figure(figsize=(10, 4))
-    plt.plot(original_signal, label="Oryginalny sygnał")
-    plt.plot(reconstructed_signal, label="Odtworzony sygnał")
-    plt.xlabel("Próbki")
-    plt.ylabel("Amplituda")
-    plt.title("Porównanie oryginalnego i odtworzonego sygnału EKG")
-    plt.legend()
-    plt.grid()
-    plt.show(block=True)
+    return spectrum, freqs
+
+def compare_ifft(signal, spectrum):
+    reconstructed = np.fft.ifft(spectrum).real
+    diff = signal - reconstructed
+    mse = np.mean(diff**2)
+    print(f"Błąd MSE odwrotnej FFT: {mse:e}")
+    return reconstructed, diff
 
 def main():
-    file_path = "C:/Users/g_sie/OneDrive/Pulpit/CPSiO/ekg100.txt"
-    time, signal, fs = load_ekg(file_path)
+    file_path = r"C:\Users\g_sie\OneDrive\Pulpit\CPSiO\ekg100.txt"  # dostosuj do siebie
+    t, ecg_signal, fs = load_ekg_ecg100(file_path)
 
-    # 1. Wizualizacja sygnału EKG
-    plot_ekg(time, signal, start_time=0, end_time=5)
+    # 1) Ocen sygnał EKG wizualnie
+    # Wyświetlamy fragment np. 2 sekundy
+    plot_ecg_time(t, ecg_signal, start_time=0, end_time=2)
 
-    # 2. Obliczenie FFT i wyświetlenie widma amplitudowego
-    fft_signal = np.fft.fft(signal)  # Szybka transformata Fouriera
-    frequencies = np.fft.fftfreq(len(signal), 1/fs)
-    positive_frequencies = frequencies[:len(frequencies)//2]  # Tylko dodatnie częstotliwości
-    positive_spectrum = fft_signal[:len(frequencies)//2]  # Tylko dodatnie częstotliwości
-    plot_spectrum(positive_frequencies, positive_spectrum, fs)
+    # 2) Wyznacz FFT i przedstaw widmo amplitudowe
+    spectrum, freqs = compute_and_plot_fft_ecg(ecg_signal, fs)
 
-    # 3. Obliczenie odwrotnej FFT i porównanie sygnałów
-    ifft_signal = np.fft.ifft(fft_signal).real  # Odwrotna FFT (bierzemy część rzeczywistą)
-    compare_signals(signal, ifft_signal)
+    # 3) Odwrotna FFT i porównanie
+    reconstructed, diff = compare_ifft(ecg_signal, spectrum)
 
-    # Obliczenie różnicy między sygnałami
-    difference = signal - ifft_signal
+    # Możesz też np. narysować porównanie oryginału i rekonstrukcji
     plt.figure(figsize=(10, 4))
-    plt.plot(difference, label="Różnica sygnałów")
-    plt.xlabel("Próbki")
+    plt.plot(t[:500], ecg_signal[:500], label="Oryginalny (fragment)")
+    plt.plot(t[:500], reconstructed[:500], '--', label="Rekonstrukcja IFFT (fragment)")
+    plt.title("Porównanie sygnału oryginalnego i odtworzonego z IFFT")
+    plt.xlabel("Czas [s]")
     plt.ylabel("Amplituda")
-    plt.title("Różnica między oryginalnym a odtworzonym sygnałem EKG (po IDFT)")
+    plt.grid(True)
     plt.legend()
-    plt.grid()
-    plt.show(block=True)
+    plt.show()
+
+    # Możesz też narysować różnicę
+    plt.figure(figsize=(10, 4))
+    plt.plot(t[:500], diff[:500])
+    plt.title("Różnica: sygnał oryginalny - rekonstrukcja (fragment)")
+    plt.xlabel("Czas [s]")
+    plt.ylabel("Amplituda")
+    plt.grid(True)
+    plt.show()
 
 if __name__ == "__main__":
     main()

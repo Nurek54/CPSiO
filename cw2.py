@@ -1,96 +1,94 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib
-
-# Użycie backendu TkAgg
 matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
 
-# 1. Generowanie fali sinusoidalnej o częstotliwości 50 Hz i długości 65536 próbek
-def generate_sine_wave(freq, sample_rate, duration, n_samples=65536):
-    t = np.linspace(0, duration, n_samples, endpoint=False)
-    signal = np.sin(2 * np.pi * freq * t)
+def generate_signal(freq_list, fs, n_samples):
+    t = np.arange(n_samples) / fs
+    signal = np.zeros_like(t)
+    for f in freq_list:
+        signal += np.sin(2 * np.pi * f * t)
     return t, signal
 
-# 2. Obliczenie dyskretnej transformaty Fouriera i wyświetlenie widma amplitudowego
-def plot_amplitude_spectrum(signal, sample_rate):
-    n = len(signal)
-    fft_result = np.fft.fft(signal)
-    fft_freqs = np.fft.fftfreq(n, 1 / sample_rate)
-
-    # Widmo amplitudowe
-    amplitude_spectrum = np.abs(fft_result) / n
-
-    # Wyświetlenie widma w zakresie [0, fs/2]
-    positive_freqs = fft_freqs[:n // 2]
-    positive_amplitude = amplitude_spectrum[:n // 2]
-
+def plot_signal(t, signal, title="Sygnał w dziedzinie czasu", start_time=0, end_time=None):
+    if end_time is None:
+        end_time = t[-1]
+    mask = (t >= start_time) & (t <= end_time)
     plt.figure(figsize=(10, 4))
-    plt.plot(positive_freqs, positive_amplitude)
-    plt.xlabel("Częstotliwość [Hz]")
-    plt.ylabel("Amplituda")
-    plt.title("Widmo amplitudowe")
-    plt.grid()
-    plt.show()
-
-# 3. Generowanie mieszaniny dwóch fal sinusoidalnych
-def generate_mixed_sine_waves(freq1, freq2, sample_rate, duration, n_samples=65536):
-    t = np.linspace(0, duration, n_samples, endpoint=False)
-    signal1 = np.sin(2 * np.pi * freq1 * t)
-    signal2 = np.sin(2 * np.pi * freq2 * t)
-    mixed_signal = signal1 + signal2
-    return t, mixed_signal
-
-# 4. Powtórzenie eksperymentów dla różnych czasów trwania sygnałów i częstotliwości próbkowania
-def repeat_experiment(freq1, freq2, durations, sample_rates):
-    for duration in durations:
-        for fs in sample_rates:
-            print(f"Czas trwania sygnału: {duration} s, Częstotliwość próbkowania: {fs} Hz")
-
-            # Generowanie sygnału z jedną częstotliwością
-            t, signal = generate_sine_wave(freq1, fs, duration)
-            plot_amplitude_spectrum(signal, fs)
-
-            # Generowanie mieszaniny sygnałów
-            t, mixed_signal = generate_mixed_sine_waves(freq1, freq2, fs, duration)
-            plot_amplitude_spectrum(mixed_signal, fs)
-
-# 5. Obliczenie odwrotnej transformaty Fouriera i porównanie z sygnałem oryginalnym
-def compare_with_original(signal, sample_rate):
-    n = len(signal)
-    fft_result = np.fft.fft(signal)
-    reconstructed_signal = np.fft.ifft(fft_result)
-
-    # Porównanie sygnałów
-    t = np.linspace(0, n / sample_rate, n, endpoint=False)
-    plt.figure(figsize=(10, 4))
-    plt.plot(t, signal, label="Oryginalny sygnał")
-    plt.plot(t, reconstructed_signal.real, label="Odtworzony sygnał", linestyle='--')
+    plt.plot(t[mask], signal[mask], label="sygnał")
+    plt.title(title)
     plt.xlabel("Czas [s]")
     plt.ylabel("Amplituda")
-    plt.title("Porównanie sygnału oryginalnego z odtworzonym")
+    plt.grid(True)
     plt.legend()
-    plt.grid()
     plt.show()
 
-# Parametry
-freq1 = 50  # Częstotliwość pierwszej fali sinusoidalnej [Hz]
-freq2 = 60  # Częstotliwość drugiej fali sinusoidalnej [Hz]
-sample_rates = [256, 1000, 4096]  # Różne częstotliwości próbkowania [Hz]
-durations = [1, 2, 5]  # Różne czasy trwania sygnałów [s]
+def compute_and_plot_fft(signal, fs, title="Widmo sygnału"):
+    N = len(signal)
+    spectrum = np.fft.fft(signal)
+    freqs = np.fft.fftfreq(N, d=1/fs)
+    half = N // 2
+    freqs_plot = freqs[:half]
+    amplitude_spectrum = np.abs(spectrum) * 2.0 / N
+    amplitude_plot = amplitude_spectrum[:half]
+    plt.figure(figsize=(10, 4))
+    plt.plot(freqs_plot, amplitude_plot)
+    plt.title(title)
+    plt.xlim([0, fs/2])
+    plt.xlabel("Częstotliwość [Hz]")
+    plt.ylabel("Amplituda")
+    plt.grid(True)
+    plt.show()
+    return freqs, spectrum
 
-# 1. Generowanie fali sinusoidalnej o długości 65536 próbek
-t, signal = generate_sine_wave(freq1, sample_rates[0], durations[0])
+def compare_with_ifft(signal, spectrum, t=None, show_plot=False, title="Porównanie oryginał vs ifft"):
+    reconstructed = np.fft.ifft(spectrum).real
+    mse = np.mean((signal - reconstructed)**2)
+    print(f"Błąd odwrotnej FFT (MSE): {mse:e}")
+    if show_plot and t is not None:
+        plt.figure(figsize=(10, 4))
+        plt.plot(t, signal, label="Oryginalny")
+        plt.plot(t, reconstructed, '--', label="Odtworzony (ifft)")
+        plt.title(title)
+        plt.xlabel("Czas [s]")
+        plt.ylabel("Amplituda")
+        plt.legend()
+        plt.grid(True)
+        plt.xlim(0, 0.01)
+        plt.show()
+    return reconstructed
 
-# 2. Wyznaczanie widma amplitudowego
-plot_amplitude_spectrum(signal, sample_rates[0])
+def main():
+    fs = 1000
+    N = 65536
+    f1 = 50
+    f2 = 60
+    print("ĆWICZENIE 2 — TRANSFORMATA FOURIERA")
 
-# 3. Generowanie mieszaniny dwóch fal sinusoidalnych
-t, mixed_signal = generate_mixed_sine_waves(freq1, freq2, sample_rates[0], durations[0])
-plot_amplitude_spectrum(mixed_signal, sample_rates[0])
+    print("\n[1] Generujemy sin(50Hz)")
+    t, sig_50 = generate_signal([f1], fs, N)
+    plot_signal(t, sig_50, title="Czysta sinusoida 50Hz (fragment)", start_time=0, end_time=0.01)
 
-# 4. Powtórzenie eksperymentów dla różnych czasów trwania i częstotliwości próbkowania
-repeat_experiment(freq1, freq2, durations, sample_rates)
+    print("[2] Widmo amplitudowe sin(50Hz)")
+    freqs, spectrum = compute_and_plot_fft(sig_50, fs)
+    reconstructed_50 = compare_with_ifft(sig_50, spectrum, t=t, show_plot=True, title="IFFT – czysta sinusoida")
 
-# 5. Porównanie sygnałów oryginalnych z odtworzonymi
-compare_with_original(signal, sample_rates[0])
-compare_with_original(mixed_signal, sample_rates[0])
+    print("\n[3] Generujemy sin(50Hz) + sin(60Hz)")
+    t2, sig_50_60 = generate_signal([f1, f2], fs, N)
+    plot_signal(t2, sig_50_60, title="Mieszanina 50Hz + 60Hz (fragment)", start_time=0, end_time=0.01)
+
+    print("Widmo amplitudowe (50Hz + 60Hz)")
+    freqs_2, spectrum_2 = compute_and_plot_fft(sig_50_60, fs)
+    reconstructed_50_60 = compare_with_ifft(sig_50_60, spectrum_2, t=t2, show_plot=True, title="IFFT – mieszanina 50Hz + 60Hz")
+
+    print("\n[4] Różne fs (i różne czasy trwania).")
+    fs_values = [500, 1000, 2000]
+    for fs_test in fs_values:
+        print(f"\nfs = {fs_test} Hz")
+        t3, sig_mix = generate_signal([50, 60], fs_test, 65536)
+        compute_and_plot_fft(sig_mix, fs_test)
+
+    print("\n[5] Odwrotna FFT sprawdzona w compare_with_ifft().")
+
+if __name__ == "__main__":
+    main()
