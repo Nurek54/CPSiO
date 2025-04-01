@@ -1,4 +1,7 @@
 import numpy as np
+import matplotlib
+matplotlib.use('TkAgg')
+
 import matplotlib.pyplot as plt
 from skimage import io, img_as_float
 
@@ -31,10 +34,10 @@ def show_image(image, title):
     plt.show()
 
 # Ścieżki do plików – dostosuj do własnej lokalizacji
-path_a = r"/Lista2/chest-xray.tif"
-path_b = r"/spectrum.tif"
-path_c = r"/pollen-lowcontrast.tif"
-path_d = r"/Lista2/aerial_view.tif"
+path_a = r"chest-xray.tif"
+path_b = r"spectrum.tif"
+path_c = r"pollen-lowcontrast.tif"
+path_d = r"aerial_view.tif"
 
 # Wczytanie obrazów
 img_a = io.imread(path_a, as_gray=True)

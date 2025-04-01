@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 from skimage import io
 import numpy as np
 import os
@@ -50,7 +49,7 @@ def crop_and_save_image(image, top, left, height, width, save_path):
 # Example usage:
 if __name__ == "__main__":
     # Replace this path with your image path
-    image_path = r"/Lista2/chest-xray.tif"
+    image_path = r"chest-xray.tif"
 
     # Load and show full image
     img = load_and_display_image(image_path)
@@ -60,4 +59,4 @@ if __name__ == "__main__":
 
     # Crop and save a 100x100 region starting at (50, 50)
     crop_and_save_image(img, top=50, left=50, height=100, width=100,
-                        save_path=r"/Lista2/cropped_xray.tif")
+                        save_path=r"cropped_xray.tif")

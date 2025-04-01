@@ -1,3 +1,6 @@
+import matplotlib
+matplotlib.use('TkAgg')
+
 import matplotlib.pyplot as plt
 from skimage import io, exposure, img_as_float
 import numpy as np
@@ -36,12 +39,12 @@ def show_histogram_comparison(original, equalized, title=""):
 if __name__ == "__main__":
     # Ścieżki do testowych plików (dostosuj do siebie)
     paths = {
-        "pollen-dark": r"C:\Users\g_sie\OneDrive\Pulpit\CPSiO\pollen-dark.tif",
-        "pollen-ligt": r"C:\Users\g_sie\OneDrive\Pulpit\CPSiO\pollen-ligt.tif",
-        "pollen-lowcontrast": r"C:\Users\g_sie\OneDrive\Pulpit\CPSiO\pollen-lowcontrast.tif",
-        "spectrum": r"C:\Users\g_sie\OneDrive\Pulpit\CPSiO\spectrum.tif",
-        "pout": r"C:\Users\g_sie\OneDrive\Pulpit\CPSiO\pout.tif",
-        "chest-xray": r"C:\Users\g_sie\OneDrive\Pulpit\CPSiO\chest-xray.tif"
+        "pollen-dark": r"pollen-dark.tif",
+        "pollen-ligt": r"pollen-ligt.tif",
+        "pollen-lowcontrast": r"pollen-lowcontrast.tif",
+        "spectrum": r"spectrum.tif",
+        "pout": r"pout.tif",
+        "chest-xray": r"chest-xray.tif"
     }
 
     for name, path in paths.items():
