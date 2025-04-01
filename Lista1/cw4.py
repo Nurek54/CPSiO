@@ -70,7 +70,7 @@ def plot_filter_response(b, a, fs, title="Charakterystyka filtra"):
     plt.show()
 
 def main():
-    file_path = r"C:\Users\g_sie\OneDrive\Pulpit\CPSiO\ekg_noise.txt"
+    file_path = r"ekg_noise.txt"
     time, noisy_signal, fs = load_ekg_noise(file_path)
     print(f"Szacowana fs = {fs:.2f} Hz")
 

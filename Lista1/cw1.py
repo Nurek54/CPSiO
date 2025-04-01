@@ -41,8 +41,8 @@ def save_segment_to_file(output_path, time, signal, start_time=0.0, end_time=5.0
     np.savetxt(output_path, out_data, fmt="%.6f")
 
 if __name__ == "__main__":
-    file_path = r"C:\Users\g_sie\OneDrive\Pulpit\CPSiO\ekg1.txt"
+    file_path = r"ekg1.txt"
     time, signal = load_ekg(file_path, channel=0)
     plot_ekg(time, signal, start_time=0.0, end_time=5.0)
-    output_path = r"C:\Users\g_sie\OneDrive\Pulpit\CPSiO\ekg1_fragment.txt"
+    output_path = r"/ekg1_fragment.txt"
     save_segment_to_file(output_path, time, signal, start_time=0.0, end_time=5.0)
