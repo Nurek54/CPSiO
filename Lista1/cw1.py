@@ -48,11 +48,20 @@ def plot_ekg(time, signal, start_time=0.0, end_time=5.0):
     plt.grid(True)
     plt.show()
 
+
+def save_signal(time, signal, start_time, end_time, output_file):
+    mask = (time >= start_time) & (time <= end_time)
+    clipped_data = np.column_stack((time[mask], signal[mask]))
+    np.savetxt(output_file, clipped_data, header="Czas[s] Amplituda", comments='')
+    print(f"Zapisano wycinek sygnału do pliku: {output_file}")
+
+
 if __name__ == "__main__":
-    file_path = r"ekg_noise.txt"
+    file_path = r"ekg1.txt"
     channel = 0
     start_time = 1.0  # <- czas początkowy wycinka
     end_time = 2.0  # <- czas końcowy wycinka
 
     time, signal = load_ekg(file_path, channel=channel)
     plot_ekg(time, signal, start_time=start_time, end_time=end_time)
+    save_signal(time, signal, start_time=start_time, end_time=end_time, output_file="ekg_cut.txt")
