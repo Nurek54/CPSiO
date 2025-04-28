@@ -1,62 +1,116 @@
-import numpy as np
-import matplotlib
-matplotlib.use('TkAgg')
-
 import matplotlib.pyplot as plt
-from skimage import io, img_as_float
+import numpy as np
+from PIL import Image
 
-# Funkcja pomocnicza – konwersja obrazu do float w zakresie [0, 1]
-def to_float(image):
-    return img_as_float(image)
 
-# a) Mnożenie obrazu przez stałą
-def multiply_image(image, c):
-    return np.clip(to_float(image) * c, 0, 1)
+def constant():
+    images = ["Lista2/chest-xray.tif", "Lista2/pollen-dark.tif", "Lista2/spectrum.tif"]
 
-# b) Transformacja logarytmiczna
-def log_transform(image, c):
-    return np.clip(c * np.log1p(to_float(image)), 0, 1)
+    constants = [0.3, 0.7, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 10.0]
 
-# c) Transformacja kontrastu (postać sigmoidalna)
-def contrast_transform(image, m=0.45, e=8):
-    image_f = to_float(image)
-    return 1 / (1 + (m / (image_f + 1e-5))**e)
+    for image in images:
+        img_gray = Image.open(image).convert("L")
+        arr = np.array(img_gray, dtype=float) # data converted to float, to icrease accuracy of multiplying
 
-# d) Korekcja gamma
-def gamma_correction(image, c=1.0, gamma=0.4):
-    return np.clip(c * (to_float(image) ** gamma), 0, 1)
+        plt.figure(figsize=(10,10))
+        plt.suptitle(f"Stała: {image}")
 
-# Wizualizacja przekształconego obrazu
-def show_image(image, title):
-    plt.imshow(image, cmap='gray')
-    plt.title(title)
-    plt.axis('off')
-    plt.show()
+        for i, c in enumerate(constants):
+            img_multiplied = np.clip(arr * c, 0, 255).astype(np.uint8) # data clipped to stay in 0-255 values and uint8
+            plt.subplot(3, 3, i+1)
+            plt.imshow(img_multiplied, cmap="gray", vmin=0, vmax=255)
+            plt.axis("off")
+            plt.title(f"c = {c}")
+        
+        plt.show()
 
-# Ścieżki do plików – dostosuj do własnej lokalizacji
-path_a = r"chest-xray.tif"
-path_b = r"spectrum.tif"
-path_c = r"pollen-lowcontrast.tif"
-path_d = r"aerial_view.tif"
+def log():
+    images = ["Lista2/spectrum.tif"]
 
-# Wczytanie obrazów
-img_a = io.imread(path_a, as_gray=True)
-img_b = io.imread(path_b, as_gray=True)
-img_c = io.imread(path_c, as_gray=True)
-img_d = io.imread(path_d, as_gray=True)
+    constants = [0.25, 0.5, 1, 5, 10, 25, 50, 100, 150]
 
-# a) Mnożenie przez stałą
-img_multiplied = multiply_image(img_a, c=1.5)
-show_image(img_multiplied, "6a – Mnożenie przez stałą (c=1.5)")
+    for image in images:
+        img_gray = Image.open(image).convert("L")
+        arr = np.array(img_gray, dtype=float) # data converted to float, to icrease accuracy of multiplying
 
-# b) Transformacja logarytmiczna
-img_log = log_transform(img_b, c=0.5)
-show_image(img_log, "6b – Transformacja logarytmiczna (c=0.5)")
+        plt.figure(figsize=(10,10))
+        plt.suptitle(f"Logarytmiczna: {image}")
 
-# c) Zmiana kontrastu (sigmoid)
-img_contrast = contrast_transform(img_c, m=0.45, e=8)
-show_image(img_contrast, "6c – Zmiana kontrastu (m=0.45, e=8)")
+        for i, c in enumerate(constants):
+            img_multiplied = np.clip(c * np.log(1 + arr), 0, 255).astype(np.uint8) # data clipped to stay in 0-255 values and uint8
+            plt.subplot(3, 3, i+1)
+            plt.imshow((img_multiplied / img_multiplied.max()) * 255, cmap="gray", vmin=0, vmax=255) # normalized to fill all values 0-255
+            plt.axis("off")
+            plt.title(f"c = {c}")
+        
+        plt.show()
 
-# d) Korekcja gamma
-img_gamma = gamma_correction(img_d, c=1.0, gamma=0.4)
-show_image(img_gamma, "6d – Korekcja gamma (gamma=0.4)")
+def dynamics_and_grayscale():
+    images = ["Lista2/chest-xray.tif", "Lista2/einstein-low-contrast.tif", "Lista2/pollen-lowcontrast.tif"]
+
+    ms = [0.45, 1.0, 1.5]
+    es = [4, 8, 12]
+
+    for image in images:
+        img_gray = Image.open(image).convert("L")
+        arr = np.array(img_gray, dtype=float)
+        
+        arr_norm = (arr - arr.min()) / (arr.max() - arr.min())
+        
+        plt.figure(figsize=(10,10))
+        plt.suptitle(f"Transformacja sigmoidalna: {image}")
+
+        counter = 1
+
+        for m in ms:
+            for e in es:
+                with np.errstate(divide='ignore', invalid='ignore'):
+                    transformed = 1 / (1 + (m / np.where(arr_norm == 0, np.inf, arr_norm)) ** e)
+                    transformed[arr_norm == 0] = 0
+                
+                result = (255 * (transformed - transformed.min()) / 
+                        (transformed.max() - transformed.min())).astype(np.uint8)
+                
+                plt.subplot(3, 3, counter)
+                plt.imshow(result, cmap="gray", vmin=0, vmax=255)
+                plt.axis("off")
+                plt.title(f"m = {m}, e = {e}")
+                counter += 1
+        
+        plt.show()
+
+def gamma_correction():
+    images = ["Lista2/aerial_view.tif"]
+
+    constants = [0.5, 1.0, 1.5]
+    gammas = [0.5, 1, 1.5]
+
+    for image in images:
+        img_gray = Image.open(image).convert("L")
+        arr = np.array(img_gray, dtype=float)
+        
+        arr_norm = (arr - arr.min()) / (arr.max() - arr.min())
+        
+        plt.figure(figsize=(10,10))
+        plt.suptitle(f"Transformacja sigmoidalna: {image}")
+
+        counter = 1
+
+        for c in constants:
+            for g in gammas:
+                transformed = c * (arr_norm ** g)
+                result = (255 * (transformed - transformed.min()) / 
+                        (transformed.max() - transformed.min())).astype(np.uint8)
+                
+                plt.subplot(3, 3, counter)
+                plt.imshow(result, cmap="gray", vmin=0, vmax=255)
+                plt.axis("off")
+                plt.title(f"c = {c}, gamma = {g}")
+                counter += 1
+        
+        plt.show()
+        
+# constant()
+# log()
+# dynamics_and_grayscale()
+gamma_correction()
