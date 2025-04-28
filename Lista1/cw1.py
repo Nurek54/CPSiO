@@ -1,6 +1,5 @@
 import numpy as np
 import matplotlib
-matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 
 def load_ekg(file_path, fs=None, channel=0):
@@ -33,16 +32,7 @@ def plot_ekg(time, signal, start_time=0.0, end_time=5.0):
     plt.grid(True)
     plt.show()
 
-def save_segment_to_file(output_path, time, signal, start_time=0.0, end_time=5.0):
-    mask = (time >= start_time) & (time <= end_time)
-    t_segment = time[mask]
-    s_segment = signal[mask]
-    out_data = np.column_stack((t_segment, s_segment))
-    np.savetxt(output_path, out_data, fmt="%.6f")
-
 if __name__ == "__main__":
-    file_path = r"ekg1.txt"
-    time, signal = load_ekg(file_path, channel=0)
-    plot_ekg(time, signal, start_time=0.0, end_time=5.0)
-    output_path = r"/ekg1_fragment.txt"
-    save_segment_to_file(output_path, time, signal, start_time=0.0, end_time=5.0)
+    file_path = "Lista1/ekg_noise.txt"
+    time, signal = load_ekg(file_path, channel=2)
+    plot_ekg(time, signal, start_time=1.0, end_time=2.0)
