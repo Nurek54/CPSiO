@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib
-matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from scipy.signal import butter, filtfilt, freqz
 
@@ -70,7 +68,7 @@ def plot_filter_response(b, a, fs, title="Charakterystyka filtra"):
     plt.show()
 
 def main():
-    file_path = r"ekg_noise.txt"
+    file_path = "Lista1/ekg_noise.txt"
     time, noisy_signal, fs = load_ekg_noise(file_path)
     print(f"Szacowana fs = {fs:.2f} Hz")
 
@@ -110,8 +108,6 @@ def main():
     diff_hp = lp_signal - bp_signal
     plot_time(time, diff_hp, "Różnica (LP - BP) w dziedzinie czasu", start=0, end=2)
     plot_fft(diff_hp, fs, "Widmo różnicy (LP - BP)")
-
-    print("Gotowe! :P ")
 
 if __name__ == "__main__":
     main()

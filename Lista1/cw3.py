@@ -60,4 +60,4 @@ def run(path, sample_frequency):
     plt.tight_layout()
     plt.show()
 
-run("ekg100.txt", 360)
+run("Lista1/ekg100.txt", 360)

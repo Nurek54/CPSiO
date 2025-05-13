@@ -1,7 +1,4 @@
 import numpy as np
-import matplotlib
-
-matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 
 
@@ -57,7 +54,7 @@ def save_signal(time, signal, start_time, end_time, output_file):
 
 
 if __name__ == "__main__":
-    file_path = r"ekg1.txt"
+    file_path = "Lista1/ekg1.txt"
     channel = 0
     start_time = 1.0  # <- czas początkowy wycinka
     end_time = 2.0  # <- czas końcowy wycinka

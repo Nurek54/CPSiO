@@ -59,4 +59,4 @@ def run(frequencies, time, length):
     plt.show()
 
 
-run([50], 1, 65536)
+run([50], 0.5, 65536)
