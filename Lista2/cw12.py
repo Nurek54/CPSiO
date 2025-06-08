@@ -1,53 +1,60 @@
 import matplotlib
 matplotlib.use('TkAgg')
 
-import matplotlib.pyplot as plt
-from skimage import io, img_as_float, filters
-from scipy.ndimage import gaussian_laplace
+import os, sys, time
 import numpy as np
-import os
+import matplotlib.pyplot as plt
+from skimage import io, img_as_float, img_as_ubyte, exposure, filters, morphology, metrics
 
-# Funkcja do wyświetlania wyników
-def show_edges(original, edges_dict, title_prefix=""):
-    num_filters = len(edges_dict)
-    fig, axs = plt.subplots(1, num_filters + 1, figsize=(5 * (num_filters + 1), 5))
+def save(i, n, d):
+    io.imsave(os.path.join(d, n + '.tif'), img_as_ubyte(i), check_contrast=False)
 
-    axs[0].imshow(original, cmap='gray')
-    axs[0].set_title("Obraz oryginalny")
-    axs[0].axis('off')
-
-    for i, (name, edge_img) in enumerate(edges_dict.items(), start=1):
-        axs[i].imshow(edge_img, cmap='gray')
-        axs[i].set_title(name)
-        axs[i].axis('off')
-
-    plt.tight_layout()
+def show(i, t):
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(i, cmap='gray')
+    ax.set_title(t)
+    ax.axis('off')
     plt.show()
+    plt.close(fig)
 
-# Filtry gradientowe
-def apply_gradient_filters(image):
-    edge_sobel = filters.sobel(image)
-    edge_prewitt = filters.prewitt(image)
-    edge_roberts = filters.roberts(image)
-    edge_log = gaussian_laplace(image, sigma=1)
+def denoise(x):
+    return filters.gaussian(filters.median(x, morphology.disk(3)), sigma=1)
 
-    return {
-        "Sobel": edge_sobel,
-        "Prewitt": edge_prewitt,
-        "Roberts": edge_roberts,
-        "LoG": np.abs(edge_log)
-    }
+def clahe(x):
+    return exposure.equalize_adapthist(x, clip_limit=0.03)
 
-# Główna część
-if __name__ == "__main__":
-    # Ścieżka do obrazu testowego
-    path = r"testpat1.png"
+def sharpen(x):
+    r, a, k = 2, 1.5, 1.2
+    u = filters.unsharp_mask(x, radius=r, amount=a)
+    g = filters.gaussian(x, sigma=r)
+    h = np.clip(x + k * (x - g), 0, 1)
+    return np.clip(0.5 * u + 0.5 * h, 0, 1)
 
-    if not os.path.exists(path):
-        print(f"❌ Brakuje pliku: {path}")
-    else:
-        print(f"✅ Przetwarzam: {path}")
-        image = img_as_float(io.imread(path, as_gray=True))
+def smooth(x):
+    return filters.gaussian(x, sigma=0.5)
 
-        edges = apply_gradient_filters(image)
-        show_edges(image, edges, title_prefix="Krawędzie")
+def morph(x):
+    return x * morphology.remove_small_objects(x > 0.15, 500)
+
+def main(src='bonescan.tif', dst='wyniki'):
+    if not os.path.exists(src):
+        print('Brak pliku:', src)
+        sys.exit(1)
+    os.makedirs(dst, exist_ok=True)
+
+    o = img_as_float(io.imread(src, as_gray=True)); save(o, '01_oryginal', dst); show(o, '01 Oryginal')
+
+    d = denoise(o); save(d, '02_denoised', dst); show(d, '02 Denoised')
+
+    c = clahe(d); save(c, '03_contrast', dst); show(c, '03 CLAHE')
+
+    s = sharpen(c); save(s, '04_sharpened', dst); show(s, '04 Sharpen')
+
+    f = morph(smooth(s)); save(f, '05_final', dst); show(f, '05 Final')
+
+    psnr = metrics.peak_signal_noise_ratio(o, f, data_range=1)
+    ssim = metrics.structural_similarity(o, f, data_range=1)
+    print('PSNR', psnr, 'SSIM', ssim)
+
+if __name__ == '__main__':
+    main()
