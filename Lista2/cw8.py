@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Wczytaj obraz
-img = cv2.imread('Lista2/chest-xray.tif', cv2.IMREAD_GRAYSCALE)
+img = cv2.imread('Lista2/hidden-symbols.tif', cv2.IMREAD_GRAYSCALE)
 if img is None:
     raise FileNotFoundError("Nie udało się wczytać obrazu.")
 
@@ -13,16 +13,14 @@ mask_sizes = [3, 8, 15]
 plt.figure(figsize=(12, 10))
 
 for i, size in enumerate(mask_sizes):
-    # a) CLAHE – lokalne wyrównywanie histogramu
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(size, size))
+    # CLAHE – lokalne wyrównywanie histogramu
+    clahe = cv2.createCLAHE(clipLimit=100.0, tileGridSize=(size, size))
     clahe_img = clahe.apply(img)
 
-    # b) Lokalna poprawa jakości (lokalne rozciąganie histogramu)
+    # Lokalna poprawa jakości (lokalne rozciąganie histogramu)
     local_mean = cv2.blur(img.astype(np.float32), (size, size))
     local_sqmean = cv2.blur(np.square(img.astype(np.float32)), (size, size))
     local_std = np.sqrt(local_sqmean - local_mean ** 2)
-
-    # Poprawiony obraz (na podstawie lokalnych statystyk)
     enhanced_img = np.clip((img - local_mean) / (local_std + 1e-5) * 32 + 128, 0, 255).astype(np.uint8)
 
     # Wyświetl wyniki

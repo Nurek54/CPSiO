@@ -45,10 +45,10 @@ paths = {
 # Przetwarzanie każdego obrazu
 for name, path in paths.items():
     if not os.path.exists(path):
-        print(f"❌ Brakuje pliku: {path}")
+        print(f"Brakuje pliku: {path}")
         continue
 
-    print(f"✅ Przetwarzam: {name}")
+    print(f"Przetwarzam: {name}")
     image = img_as_float(io.imread(path, as_gray=True))
 
     # Mean filter

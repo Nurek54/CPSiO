@@ -13,7 +13,7 @@ def show_image_and_hist(title, image, position):
     plt.title('Histogram')
 
 # Wczytaj obraz w odcieniach szarości
-original_img = cv2.imread('Lista2/chest-xray.tif', cv2.IMREAD_GRAYSCALE)
+original_img = cv2.imread('Lista2/spectrum.tif', cv2.IMREAD_GRAYSCALE)
 
 # Symuluj zbyt ciemny i zbyt jasny obraz
 dark_img = np.clip(original_img * 0.4, 0, 255).astype(np.uint8)

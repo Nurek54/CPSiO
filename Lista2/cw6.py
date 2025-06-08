@@ -112,5 +112,5 @@ def gamma_correction():
         
 # constant()
 # log()
-# dynamics_and_grayscale()
-gamma_correction()
+dynamics_and_grayscale()
+# gamma_correction()
